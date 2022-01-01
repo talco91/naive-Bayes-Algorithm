@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+import functools
 
 def gensmallm(x_list: list, y_list: list, m: int):
     """
@@ -32,6 +32,31 @@ def bayeslearn(x_train: np.array, y_train: np.array):
     :param y_train: numpy array of size (m, 1) containing the labels of the training set
     :return: a triple (allpos, ppos, pneg) the estimated conditional probabilities to use in the Bayes predictor
     """
+
+    allpos = sum([1 for y in y_train if y==1]) / len(y_train)
+
+    doctor_y_pos_count = np.zeros(len(x_train[0]))
+    doctor_y_neg_count = np.zeros(len(x_train[0]))
+    y_1_count = 0
+
+    # Count all the y's foreach coordinate - ignoring nan entries
+    for y,x in zip(y_train,x_train):
+        for doctor_index, doctor in enumerate(x):
+            if doctor == 1 and y==1:
+                doctor_y_pos_count[doctor_index]+=1
+                y_1_count+=1
+            else:
+                if doctor == -1 and y==-1:
+                    doctor_y_neg_count[doctor_index]+=1
+                    y_1_count+=1
+    
+    # Calculate conditional probabilities 
+    pneg = doctor_y_neg_count / y_1_count
+    ppos = doctor_y_pos_count / y_1_count
+    
+    return allpos,pneg,ppos
+
+
     raise NotImplementedError()
 
 
