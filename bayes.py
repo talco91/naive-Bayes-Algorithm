@@ -54,7 +54,7 @@ def bayeslearn(x_train: np.array, y_train: np.array):
     pneg = np.divide(doctor_y_neg_count,y_1_count)
     ppos = np.divide(doctor_y_pos_count,y_1_count)
     
-    return allpos,pneg,ppos
+    return allpos,ppos,pneg
 
 
 def bayespredict(allpos: float, ppos: np.array, pneg: np.array, x_test: np.array):
