@@ -35,29 +35,26 @@ def bayeslearn(x_train: np.array, y_train: np.array):
 
     allpos = sum([1 for y in y_train if y==1]) / len(y_train)
 
-    doctor_y_pos_count = np.zeros(len(x_train[0]))
-    doctor_y_neg_count = np.zeros(len(x_train[0]))
-    y_1_count = 0
+    doctor_y_pos_count = np.zeros((len(x_train[0]),1))
+    doctor_y_neg_count = np.zeros((len(x_train[0]),1))
+    y_1_count = np.zeros((len(x_train[0]),1))
 
     # Count all the y's foreach coordinate - ignoring nan entries
     for y,x in zip(y_train,x_train):
         for doctor_index, doctor in enumerate(x):
             if doctor == 1 and y==1:
                 doctor_y_pos_count[doctor_index]+=1
-                y_1_count+=1
-            else:
-                if doctor == -1 and y==-1:
-                    doctor_y_neg_count[doctor_index]+=1
-                    y_1_count+=1
+                y_1_count[doctor_index]+=1
+            if doctor == 0 and y==1:
+                doctor_y_neg_count[doctor_index]+=1
+                y_1_count[doctor_index]+=1
+
     
     # Calculate conditional probabilities 
-    pneg = doctor_y_neg_count / y_1_count
-    ppos = doctor_y_pos_count / y_1_count
+    pneg = np.divide(doctor_y_neg_count,y_1_count)
+    ppos = np.divide(doctor_y_pos_count,y_1_count)
     
     return allpos,pneg,ppos
-
-
-    raise NotImplementedError()
 
 
 def bayespredict(allpos: float, ppos: np.array, pneg: np.array, x_test: np.array):
@@ -69,7 +66,23 @@ def bayespredict(allpos: float, ppos: np.array, pneg: np.array, x_test: np.array
     :param x_test: numpy array of size (n, d) containing the test samples
     :return: numpy array of size (n, 1) containing the predicted labels of the test samples
     """
-    raise NotImplementedError()
+
+    y_hats = np.zeros((len(x_test),1))
+
+    for x_index,x in enumerate(x_test):
+        accumuletor = 1
+        for doctor_index in range(len(x)):
+            if x[doctor_index] == 1:
+                accumuletor = ppos[doctor_index] * accumuletor 
+            else:
+                if x[doctor_index] == 0: 
+                    accumuletor = pneg[doctor_index] * accumuletor 
+                else:
+                    print("debug")
+
+        y_hats[x_index] = 1 if allpos * accumuletor >= 0.5 else -1
+
+    return y_hats
 
 
 
