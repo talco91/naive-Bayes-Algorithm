@@ -38,6 +38,7 @@ def bayeslearn(x_train: np.array, y_train: np.array):
     doctor_y_pos_count = np.zeros((len(x_train[0]),1))
     doctor_y_neg_count = np.zeros((len(x_train[0]),1))
     y_1_count = np.zeros((len(x_train[0]),1))
+    y_minus_1_count = np.zeros((len(x_train[0]),1))
 
     # Count all the y's foreach coordinate - ignoring nan entries
     for y,x in zip(y_train,x_train):
@@ -45,14 +46,14 @@ def bayeslearn(x_train: np.array, y_train: np.array):
             if doctor == 1 and y==1:
                 doctor_y_pos_count[doctor_index]+=1
                 y_1_count[doctor_index]+=1
-            if doctor == 0 and y==1:
+            if doctor == 1 and y==-1:
                 doctor_y_neg_count[doctor_index]+=1
-                y_1_count[doctor_index]+=1
+                y_minus_1_count[doctor_index]+=1
 
     
     # Calculate conditional probabilities 
-    pneg = np.divide(doctor_y_neg_count,y_1_count)
-    ppos = np.divide(doctor_y_pos_count,y_1_count)
+    ppos = np.divide(doctor_y_pos_count,y_1_count)  
+    pneg = np.divide(doctor_y_neg_count,y_minus_1_count)
     
     return allpos,ppos,pneg
 
@@ -69,18 +70,17 @@ def bayespredict(allpos: float, ppos: np.array, pneg: np.array, x_test: np.array
 
     y_hats = np.zeros((len(x_test),1))
 
+    accumuletor = np.log(allpos/(1-allpos))
     for x_index,x in enumerate(x_test):
-        accumuletor = 1
+       
         for doctor_index in range(len(x)):
-            if x[doctor_index] == 1:
-                accumuletor = ppos[doctor_index] * accumuletor 
-            else:
-                if x[doctor_index] == 0: 
-                    accumuletor = pneg[doctor_index] * accumuletor 
-                else:
-                    print("debug")
+            if x[doctor_index]==1:
+                accumuletor += np.log(ppos[x_index]/pneg[x_index])
 
-        y_hats[x_index] = 1 if allpos * accumuletor >= 0.5 else -1
+            if x[doctor_index]==0:
+                accumuletor += np.log((1-ppos[x_index])/(1-pneg[x_index]))
+            
+        y_hats[x_index] = 1 if accumuletor >= 0 else -1
 
     return y_hats
 
