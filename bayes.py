@@ -34,12 +34,10 @@ def bayeslearn(x_train: np.array, y_train: np.array):
     """
     y_pos_count = sum([1 for y in y_train if y == 1])
     y_neg_count = len(y_train) - y_pos_count
-    allpos = sum([1 for y in y_train if y == 1]) / len(y_train)
+    allpos = y_pos_count / len(y_train)
 
     doctor_y_pos_count = np.zeros((len(x_train[0]), 1))
     doctor_y_neg_count = np.zeros((len(x_train[0]), 1))
-    y_1_count = 0 #np.zeros((len(x_train[0]), 1))
-    y_minus_1_count = 0 # np.zeros((len(x_train[0]), 1))
 
     # Count all the y's foreach coordinate - ignoring nan entries
     for y, x in zip(y_train, x_train):
@@ -52,8 +50,8 @@ def bayeslearn(x_train: np.array, y_train: np.array):
                     doctor_y_neg_count[doctor_index] += 1
 
     # Calculate conditional probabilities 
-    ppos = (doctor_y_pos_count / y_pos_count) / allpos  #np.divide(doctor_y_pos_count, y_1_count)
-    pneg = (doctor_y_neg_count / y_neg_count) / (1-allpos) #np.divide(doctor_y_neg_count, y_minus_1_count)
+    ppos = (doctor_y_pos_count / len(x_train)) / allpos
+    pneg = (doctor_y_neg_count / len(x_train)) / (1-allpos)
     
     return allpos, ppos, pneg
 
@@ -69,15 +67,17 @@ def bayespredict(allpos: float, ppos: np.array, pneg: np.array, x_test: np.array
     """
 
     y_bar = np.zeros((len(x_test), 1))
+    p_x1 = list(map(lambda x: 0 if x == nan else x, np.log(ppos/pneg)))
+    p_x0 = np.log((1-ppos)/(1-pneg))
 
     for x_index, x in enumerate(x_test):
         accumulator = np.log(allpos / (1 - allpos))
         for doctor_index in range(len(x)):
             # P[x(i)=1|Y]
             if x[doctor_index] == 1:
-                accumulator += np.log(ppos[x_index]/pneg[x_index])
+                accumulator += p_x1[x_index]
             if x[doctor_index] == 0:
-                accumulator += np.log((1-ppos[x_index])/(1-pneg[x_index]))
+                accumulator += p_x0[x_index]
             
         y_bar[x_index] = 1 if accumulator >= 0 else -1
 
@@ -89,11 +89,11 @@ def simple_test():
     # the question)
     data = np.load('mnist_all.npz')
 
-    train3 = data['train3']
-    train5 = data['train5']
+    train3 = data['train0']
+    train5 = data['train1']
 
-    test3 = data['test3']
-    test5 = data['test5']
+    test3 = data['test0']
+    test5 = data['test1']
 
     m = 2000
     n = 100
@@ -131,8 +131,8 @@ def solve_binary_classification(sample_sizes, num1, num2):
     train1 = data['train' + num1]
     train2 = data['train' + num2]
 
-    test1 = data['test0']
-    test2 = data['test1']
+    test1 = data['test' + num1]
+    test2 = data['test' + num2]
 
     n = 50
     err = np.zeros(len(sample_sizes), 0)
