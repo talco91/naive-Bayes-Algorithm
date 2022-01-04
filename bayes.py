@@ -67,8 +67,10 @@ def bayespredict(allpos: float, ppos: np.array, pneg: np.array, x_test: np.array
     """
 
     y_bar = np.zeros((len(x_test), 1))
-    p_x1 = list(map(lambda x: 0 if x == nan else x, np.log(ppos/pneg)))
-    p_x0 = np.log((1-ppos)/(1-pneg))
+    p_x1 = np.log(ppos/pneg)
+    p_x1[np.isnan(p_x1)]=0
+    p_x0 = (np.log((1-ppos)/(1-pneg)))
+    p_x0[np.isnan(p_x0)]=0
 
     for x_index, x in enumerate(x_test):
         accumulator = np.log(allpos / (1 - allpos))
