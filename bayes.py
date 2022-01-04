@@ -36,22 +36,22 @@ def bayeslearn(x_train: np.array, y_train: np.array):
     y_neg_count = len(y_train) - y_pos_count
     allpos = y_pos_count / len(y_train)
 
-    doctor_y_pos_count = np.zeros((len(x_train[0]), 1))
-    doctor_y_neg_count = np.zeros((len(x_train[0]), 1))
+    pixel_y_pos_count = np.zeros((len(x_train[0]), 1))
+    pixel_y_neg_count = np.zeros((len(x_train[0]), 1))
 
     # Count all the y's foreach coordinate - ignoring nan entries
     for y, x in zip(y_train, x_train):
-        for doctor_index, doctor in enumerate(x):
+        for pixel_index, pixel in enumerate(x):
             if y == 1:
-                if doctor == 1:
-                    doctor_y_pos_count[doctor_index] += 1
+                if pixel == 1:
+                    pixel_y_pos_count[pixel_index] += 1
             if y == -1:
-                if doctor == 1:
-                    doctor_y_neg_count[doctor_index] += 1
+                if pixel == 1:
+                    pixel_y_neg_count[pixel_index] += 1
 
     # Calculate conditional probabilities 
-    ppos = (doctor_y_pos_count / len(x_train)) / allpos
-    pneg = (doctor_y_neg_count / len(x_train)) / (1-allpos)
+    ppos = (pixel_y_pos_count / len(x_train)) / allpos
+    pneg = (pixel_y_neg_count / len(x_train)) / (1-allpos)
     
     return allpos, ppos, pneg
 
@@ -67,19 +67,20 @@ def bayespredict(allpos: float, ppos: np.array, pneg: np.array, x_test: np.array
     """
 
     y_bar = np.zeros((len(x_test), 1))
+
     p_x1 = np.log(ppos/pneg)
-    p_x1[np.isnan(p_x1)]=0
-    p_x0 = (np.log((1-ppos)/(1-pneg)))
-    p_x0[np.isnan(p_x0)]=0
+    p_x1[np.isnan(p_x1)] = 0
+    p_x0 = np.log((1-ppos)/(1-pneg))
+    p_x0[np.isnan(p_x0)] = 0
 
     for x_index, x in enumerate(x_test):
         accumulator = np.log(allpos / (1 - allpos))
-        for doctor_index in range(len(x)):
+        for pixel_index in range(len(x)):
             # P[x(i)=1|Y]
-            if x[doctor_index] == 1:
-                accumulator += p_x1[x_index]
-            if x[doctor_index] == 0:
-                accumulator += p_x0[x_index]
+            if x[pixel_index] == 1 and p_x1[pixel_index, 0] != 0:
+                accumulator += p_x1[pixel_index, 0]
+            if x[pixel_index] == 0 and p_x0[pixel_index, 0] != 0:
+                accumulator += p_x0[pixel_index, 0]
             
         y_bar[x_index] = 1 if accumulator >= 0 else -1
 
@@ -97,8 +98,8 @@ def simple_test():
     test3 = data['test0']
     test5 = data['test1']
 
-    m = 2000
-    n = 100
+    m = 1000
+    n = 50
     d = train3.shape[1]
 
     x_train, y_train = gensmallm([train3, train5], [-1, 1], m)
@@ -123,23 +124,23 @@ def simple_test():
     assert isinstance(y_predict, np.ndarray), "The output of the function bayespredict should be numpy arrays"
     assert y_predict.shape == (n, 1), f"The output of bayespredict should be of size ({n}, 1)"
 
-    print(f"Prediction error = {np.mean(y_test != y_predict)}")
+    print(f"Prediction error = {np.mean(y_test.reshape((len(y_test), 1)) != y_predict)}")
 
 
 def solve_binary_classification(sample_sizes, num1, num2):
     # load sample data
     data = np.load('mnist_all.npz')
 
-    train1 = data['train' + num1]
-    train2 = data['train' + num2]
+    train1 = data['train' + str(num1)]
+    train2 = data['train' + str(num2)]
 
-    test1 = data['test' + num1]
-    test2 = data['test' + num2]
+    test1 = data['test' + str(num1)]
+    test2 = data['test' + str(num2)]
 
     n = 50
-    err = np.zeros(len(sample_sizes), 0)
+    err = np.zeros((len(sample_sizes), 1))
     for i in range(len(sample_sizes)):
-        x_train, y_train = gensmallm([train1, train2], [-1, 1], sample_sizes[i])
+        x_train, y_train = gensmallm([train1, train2], [-1, 1], int(sample_sizes[i]))
         x_test, y_test = gensmallm([test1, test2], [-1, 1], n)
 
         # threshold the images (binarization)
@@ -150,7 +151,7 @@ def solve_binary_classification(sample_sizes, num1, num2):
         # run naive bayes algorithm
         allpos, ppos, pneg = bayeslearn(x_train, y_train)
         y_predict = bayespredict(allpos, ppos, pneg, x_test)
-        err[i] = np.mean(y_test != y_predict)
+        err[i] = np.mean(y_test.reshape((len(y_test), 1)) != y_predict)
 
     return err
 
@@ -159,10 +160,16 @@ def q2_a():
     sample_sizes = np.linspace(1000, 10000, 10)
     err_diff01 = solve_binary_classification(sample_sizes, 0, 1)
     err_diff35 = solve_binary_classification(sample_sizes, 3, 5)
-
+    plt.figure(1)
+    plt.plot(sample_sizes, err_diff01)
+    plt.plot(sample_sizes, err_diff35)
+    plt.legend(["classify 0,1", "classify 3,5"])
+    plt.xlabel("Sample Size")
+    plt.ylabel("Error")
+    plt.show()
 
 if __name__ == '__main__':
     # before submitting, make sure that the function simple_test runs without errors
-    simple_test()
-    # q2_a()
+    # simple_test()
+    q2_a()
     # here you may add any code that uses the above functions to solve question 2
